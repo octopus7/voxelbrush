@@ -344,7 +344,43 @@ public class SphereBuilder : MonoBehaviour
             //Camera.main.transform.rotation = q1 * q2 * cameraOriginRotation;
 
             Camera.main.transform.rotation = Quaternion.Euler(euler);
+
+            float axisX = 0;
+            float axisY = 0;
+            float axisZ = 0;
+
+            if (Input.GetKey(KeyCode.A)) axisX = -1;
+            if (Input.GetKey(KeyCode.D)) axisX = 1;
+            if (Input.GetKey(KeyCode.Q)) axisY = -1;
+            if (Input.GetKey(KeyCode.E)) axisY = 1;
+            if (Input.GetKey(KeyCode.S)) axisZ = -1;
+            if (Input.GetKey(KeyCode.W)) axisZ = 1;
+
+            if (
+                Input.GetKeyDown(KeyCode.A) ||
+                Input.GetKeyDown(KeyCode.D) ||
+                Input.GetKeyDown(KeyCode.Q) ||
+                Input.GetKeyDown(KeyCode.E) ||
+                Input.GetKeyDown(KeyCode.S) ||
+                Input.GetKeyDown(KeyCode.W)
+            )
+            {
+                cameraSpeed = 1.0f;
+            }                
+
+            float delta = Time.deltaTime * cameraSpeed;
+
+            if (axisX != 0 || axisY != 0 || axisZ != 0)
+            {
+                cameraSpeed += Time.deltaTime;
+            }
+
+            Camera.main.transform.Translate(Vector3.right * axisX * delta, Space.Self);
+            Camera.main.transform.Translate(Vector3.up * axisY * delta, Space.Self);
+            Camera.main.transform.Translate(Vector3.forward * axisZ * delta, Space.Self);
         }
+
+        
 
         if (Input.GetMouseButtonUp(0))
         {
@@ -354,6 +390,8 @@ public class SphereBuilder : MonoBehaviour
 
     }
 
+
+    float cameraSpeed = 1.0f;
     public Vector3 pickpos = Vector3.zero;
 
     private bool ModifyByOnePoint(Ray ray)
