@@ -15,7 +15,7 @@ public class SphereBuilder : MonoBehaviour
 
     public void SetColor(int c)
     {
-        if(c >= 1 && c <= 4)
+        if(c >= 1 && c <= 6)
         {
             paintcolor = c;
         }        
@@ -46,7 +46,7 @@ public class SphereBuilder : MonoBehaviour
         public int attr;
     }
 
-    static int width = 32;
+    static int width = 64;
     Voxel[,,] voxels = new Voxel[width, width, width];
     Voxel[,,] voxelsExpand = new Voxel[width, width, width];
 
@@ -234,16 +234,20 @@ public class SphereBuilder : MonoBehaviour
         //float trim = float.Epsilon;
         float trim = 1.0f / 32;
 
+        float interval = 1 / 4.0f;
+
         Vector2 uvbase = new Vector2(0, 0);
 
-        if (idx == 2) uvbase = new Vector2(0.5f, 0);
-        if (idx == 3) uvbase = new Vector2(0, 0.5f);
-        if (idx == 4) uvbase = new Vector2(0.5f, 0.5f);
+        if (idx == 2) uvbase = new Vector2(interval, 0);
+        if (idx == 3) uvbase = new Vector2(0, interval);
+        if (idx == 4) uvbase = new Vector2(interval, interval);
+        if (idx == 5) uvbase = new Vector2(0, interval * 2);
+        if (idx == 6) uvbase = new Vector2(interval, interval * 2);
 
         uvs.Add(new Vector2(0 + trim, 0 + trim) + uvbase);
-        uvs.Add(new Vector2(0 + trim, 0.5f - trim) + uvbase);
-        uvs.Add(new Vector2(0.5f - trim, 0.5f - trim) + uvbase);
-        uvs.Add(new Vector2(0.5f - trim, 0 + trim) + uvbase);
+        uvs.Add(new Vector2(0 + trim, interval - trim) + uvbase);
+        uvs.Add(new Vector2(interval - trim, interval - trim) + uvbase);
+        uvs.Add(new Vector2(interval - trim, 0 + trim) + uvbase);
     }
 
     
