@@ -36,3 +36,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 .vsconfig
+Logs/Packages-Update.log
