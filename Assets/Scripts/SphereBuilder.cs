@@ -48,6 +48,7 @@ public class SphereBuilder : MonoBehaviour
 
     static int width = 32;
     Voxel[,,] voxels = new Voxel[width, width, width];
+    Voxel[,,] voxelsExpand = new Voxel[width, width, width];
 
     MeshFilter mf = null;
     MeshCollider mc = null;
@@ -290,7 +291,9 @@ public class SphereBuilder : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(Input.mouseScrollDelta.y != 0)
+        if (Input.GetKey(KeyCode.F)) Expand();
+
+        if (Input.mouseScrollDelta.y != 0)
         {
             Camera.main.transform.Translate(Vector3.forward * Input.mouseScrollDelta.y, Space.Self);
         }
@@ -299,6 +302,7 @@ public class SphereBuilder : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
+            CopyBuffer();
             if (ModifyByOnePoint(ray))
             {
                 BuildQuad();
@@ -336,7 +340,7 @@ public class SphereBuilder : MonoBehaviour
             //var q2 = Quaternion.AngleAxis(dragDelta.x / Screen.width * 180, axisCamUp);
 
             euler.x = euler.x + dragDelta.y / Screen.width * 180;
-            euler.y = euler.y + dragDelta.x / Screen.width * 180;
+            euler.y = euler.y - dragDelta.x / Screen.width * 180;
 
             //Camera.main.transform.rotation = q1 * q2 * cameraOriginRotation;
 
@@ -352,6 +356,8 @@ public class SphereBuilder : MonoBehaviour
             if (Input.GetKey(KeyCode.E)) axisY = 1;
             if (Input.GetKey(KeyCode.S)) axisZ = -1;
             if (Input.GetKey(KeyCode.W)) axisZ = 1;
+
+            
 
             if (
                 Input.GetKeyDown(KeyCode.A) ||
@@ -449,7 +455,13 @@ public class SphereBuilder : MonoBehaviour
                         else
                         {
                             if (mode == Mode.Add)
-                            voxels[x, y, z].attr = paintcolor;
+                            {
+                                if (voxelsExpand[x, y, z].attr > 0)
+                                {
+                                    voxels[x, y, z].attr = paintcolor;
+                                }                                    
+                            }
+                                
                         }
                     }
                 }
@@ -515,6 +527,64 @@ public class SphereBuilder : MonoBehaviour
         radius =  (int)radiusSlider.value;
         txtBrush.text = $"R = {radius}";
 
+    }
+
+    public void CopyBuffer()
+    {
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < width; y++)
+                for (int z = 0; z < width; z++)
+                {
+                    voxelsExpand[x, y, z].attr = voxels[x, y, z].attr;
+                }
+
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < width; y++)
+                for (int z = 0; z < width; z++)
+                {
+                    if(voxels[x, y, z].attr != 0)
+                    {
+                        F(x, y, z);
+                    }                    
+                }
+    }
+
+    private void F(int x0, int y0, int z0)
+    {
+        int r = radius;
+
+        for (int x = x0 - r; x <= x0 + r; x++)
+            for (int y = y0 - r; y <= y0 + r; y++)
+                for (int z = z0 - r; z <= z0 + r; z++)
+                {
+                    if (voxelsExpand[x, y, z].attr > 0) continue;
+
+                    int dx = x - x0;
+                    int dy = y - y0;
+                    int dz = z - z0;
+
+                    int sq = dx * dx + dy * dy + dz * dz;
+                    if (sq > r * r) continue;
+
+                    if (0 <= x && x < width && 0 <= y && y < width && 0 <= z && z < width)
+                    {
+                        voxelsExpand[x, y, z].attr = paintcolor;
+                    }
+                }
+    }
+
+    void Expand()
+    {
+
+        CopyBuffer();
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < width; y++)
+                for (int z = 0; z < width; z++)
+                {
+                    voxels[x, y, z].attr = voxelsExpand[x, y, z].attr;
+                }
+
+        BuildQuad();
     }
 
     public TextMeshProUGUI txtBrush;
