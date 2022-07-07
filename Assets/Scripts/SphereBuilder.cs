@@ -1,12 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(MeshRenderer))]
 public class SphereBuilder : MonoBehaviour
 {
+    public Slider radiusSlider;
+
     int paintcolor = 2;
+    int radius = 1;
 
     public void SetColor(int c)
     {
@@ -51,23 +56,15 @@ public class SphereBuilder : MonoBehaviour
     void Awake()
     {
         mf = gameObject.AddComponent<MeshFilter>();
-
         BuildSphereBuffer();
-
         mc = gameObject.AddComponent<MeshCollider>();
-
-        BuildQuad();
-
-        
+        BuildQuad();        
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-
         Gizmos.DrawWireSphere(pickpos, 1);
-
-
         return;
 
         int center = width / 2;
@@ -426,7 +423,7 @@ public class SphereBuilder : MonoBehaviour
 
     private bool FillDab(bool hit, int x0, int y0, int z0)
     {
-        int r = 1;
+        int r = radius;
 
         for (int x = x0 - r; x <= x0 + r; x++)
             for (int y = y0 - r; y <= y0 + r; y++)
@@ -512,4 +509,13 @@ public class SphereBuilder : MonoBehaviour
 
         BuildQuad();
     }
+
+    public void DabRadiusChanged()
+    {
+        radius =  (int)radiusSlider.value;
+        txtBrush.text = $"R = {radius}";
+
+    }
+
+    public TextMeshProUGUI txtBrush;
 }
