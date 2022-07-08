@@ -41,7 +41,7 @@ public class SphereBuilder : MonoBehaviour
     // data
     static int width = 64;
     Voxel[,,] voxels = new Voxel[width, width, width];
-    Voxel[,,] voxelsExpand = new Voxel[width, width, width];
+    Voxel[,,] voxelsForTrim = new Voxel[width, width, width];
 
     // unity method
 
@@ -279,16 +279,10 @@ public class SphereBuilder : MonoBehaviour
 
         if (picked)
         {
-            //var mouseWorldPos =  Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            //Ray ray = new Ray(mouseWorldPos, Camera.main.transform.forward);
-            //if(ModifyByFullScan(ray))
-
             if (ModifyByOnePoint(ray))
             {
                 BuildQuad();
             }
-
-            //if(Physics.Raycast(mouseWorldPos, Camera.main.transform.forward, out RaycastHit hit))
         }
         else if(Input.GetMouseButton(0))
         {
@@ -300,7 +294,6 @@ public class SphereBuilder : MonoBehaviour
             picked = false;
             emptySpace = false;
         }
-
     }
 
     private bool ModifyByOnePoint(Ray ray)
@@ -308,26 +301,20 @@ public class SphereBuilder : MonoBehaviour
         int center = width / 2;
         bool hit = false;
 
-        //if (Physics.Raycast(ray, out var hitinfo, LayerMask.NameToLayer("Voxel")))
-        if (Physics.Raycast(ray, out var hitinfo))
+        if (Physics.Raycast(ray, out var hitinfo)) //, 1000, LayerMask.NameToLayer("Voxel"), QueryTriggerInteraction.UseGlobal))
         {
             hit = true;
             pickpos = hitinfo.point;
-            //Debug.Log("HIT");
-
             var localpos = transform.InverseTransformPoint(pickpos);
             var arrIdxpos = localpos + new Vector3(center, center, center);
-
             int x = Mathf.RoundToInt(arrIdxpos.x);
             int y = Mathf.RoundToInt(arrIdxpos.y);
             int z = Mathf.RoundToInt(arrIdxpos.z);
-
             hit = FillDab(hit, x, y, z);
         }
         else
         {
             pickpos = Vector3.zero;
-            //Debug.Log("0");
         }
 
         return hit;
@@ -362,12 +349,11 @@ public class SphereBuilder : MonoBehaviour
                         {
                             if (mode == Mode.Add)
                             {
-                                if (voxelsExpand[x, y, z].attr > 0)
+                                if (voxelsForTrim[x, y, z].attr > 0)
                                 {
                                     voxels[x, y, z].attr = paintcolor;
                                 }                                    
-                            }
-                                
+                            }                                
                         }
                     }
                 }
@@ -399,13 +385,10 @@ public class SphereBuilder : MonoBehaviour
                         }
                     }
                 }
-
         return hit;
     }
 
-
     // public method
-
     public void SetColor(int c)
     {
         if (c >= 1 && c <= 6)
@@ -423,8 +406,6 @@ public class SphereBuilder : MonoBehaviour
     {
         lookat = newVal;
     }
-
-
 
     public void Save()
     {
@@ -464,7 +445,7 @@ public class SphereBuilder : MonoBehaviour
             for (int y = 0; y < width; y++)
                 for (int z = 0; z < width; z++)
                 {
-                    voxelsExpand[x, y, z].attr = voxels[x, y, z].attr;
+                    voxelsForTrim[x, y, z].attr = voxels[x, y, z].attr;
                 }
 
         for (int x = 0; x < width; x++)
@@ -473,12 +454,12 @@ public class SphereBuilder : MonoBehaviour
                 {
                     if(voxels[x, y, z].attr != 0)
                     {
-                        F(x, y, z);
+                        Extrusion(x, y, z);
                     }                    
                 }
     }
 
-    private void F(int x0, int y0, int z0)
+    private void Extrusion(int x0, int y0, int z0)
     {
         int r = radius;
 
@@ -486,7 +467,7 @@ public class SphereBuilder : MonoBehaviour
             for (int y = y0 - r; y <= y0 + r; y++)
                 for (int z = z0 - r; z <= z0 + r; z++)
                 {
-                    if (voxelsExpand[x, y, z].attr > 0) continue;
+                    if (voxelsForTrim[x, y, z].attr > 0) continue;
 
                     int dx = x - x0;
                     int dy = y - y0;
@@ -497,7 +478,7 @@ public class SphereBuilder : MonoBehaviour
 
                     if (0 <= x && x < width && 0 <= y && y < width && 0 <= z && z < width)
                     {
-                        voxelsExpand[x, y, z].attr = paintcolor;
+                        voxelsForTrim[x, y, z].attr = paintcolor;
                     }
                 }
     }
@@ -510,9 +491,10 @@ public class SphereBuilder : MonoBehaviour
             for (int y = 0; y < width; y++)
                 for (int z = 0; z < width; z++)
                 {
-                    voxels[x, y, z].attr = voxelsExpand[x, y, z].attr;
+                    voxels[x, y, z].attr = voxelsForTrim[x, y, z].attr;
                 }
 
         BuildQuad();
-    }    
+    }   
+
 }
