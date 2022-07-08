@@ -8,80 +8,59 @@ using UnityEngine.UI;
 [RequireComponent(typeof(MeshRenderer))]
 public class SphereBuilder : MonoBehaviour
 {
+    // components
     public Slider radiusSlider;
+    public TextMeshProUGUI txtBrush;
 
-    int paintcolor = 2;
-    int radius = 1;
+    CameraController cameraContoller;    
+    MeshFilter mf = null;
+    MeshCollider mc = null;
 
-    public void SetColor(int c)
-    {
-        if(c >= 1 && c <= 6)
-        {
-            paintcolor = c;
-        }        
-    }
-
+    // enums, struct
     public enum Mode
     {
         Paint, Add, Sub
     }
-
-    public Mode mode = Mode.Paint;
-
-    public void SetMode(int newMode)
-    {
-        mode = (Mode)newMode;
-    }
-
-    public bool lookat = false;
-
-    public void SetLookAt(bool newVal)
-    {
-        lookat = newVal;
-    }
-
 
     public struct Voxel
     {
         public int attr;
     }
 
+    // tool state
+    int paintcolor = 2;
+    int radius = 1;
+    bool picked = false;
+    bool emptySpace = false;
+    public Mode mode = Mode.Paint;
+    public bool lookat = false;
+
+    public Vector3 pickpos = Vector3.zero;
+
+
+    // data
     static int width = 64;
     Voxel[,,] voxels = new Voxel[width, width, width];
     Voxel[,,] voxelsExpand = new Voxel[width, width, width];
 
-    MeshFilter mf = null;
-    MeshCollider mc = null;
+    // unity method
 
-    // Start is called before the first frame update
     void Awake()
     {
+        cameraContoller = Camera.main.GetComponent<CameraController>();
         mf = gameObject.AddComponent<MeshFilter>();
         BuildSphereBuffer();
         mc = gameObject.AddComponent<MeshCollider>();
-        BuildQuad();        
+        BuildQuad();
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(pickpos, 1);
-        return;
-
-        int center = width / 2;
-
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < width; y++)
-                for (int z = 0; z < width; z++)
-                {
-                    Vector3 vCenter = new Vector3(x - center, y - center, z - center);
-                    // 6-faces
-                    if (voxels[x, y, z].attr > 0)
-                    {
-                        Gizmos.DrawCube(vCenter + transform.position, Vector3.one * 0.8f);
-                    }
-                }
     }
+
+    // implementation
 
     private void BuildQuad()
     {
@@ -120,7 +99,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
 
                         }
                         // bottom
@@ -138,7 +117,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
                         }
                         // left
                         if (x == 0 || voxels[x - 1, y, z].attr == 0)
@@ -155,7 +134,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
                         }
                         // right
                         if (x == width - 1 || voxels[x + 1, y, z].attr == 0)
@@ -172,7 +151,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
                         }
                         // front
                         if (z == 0 || voxels[x, y, z - 1].attr == 0)
@@ -189,7 +168,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
                         }
                         // back
                         if (z == width - 1 || voxels[x, y, z + 1].attr == 0)
@@ -206,7 +185,7 @@ public class SphereBuilder : MonoBehaviour
                             indicies.Add(idx++);
                             indicies.Add(idx++);
                             indicies.Add(idx++);
-                            adduvbyidx(ref uvs, attr);
+                            AddUvByIdx(ref uvs, attr);
 
                         }
                     }
@@ -219,23 +198,15 @@ public class SphereBuilder : MonoBehaviour
         mesh.SetUVs(0, uvs);
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         mesh.SetIndices(indicies, MeshTopology.Quads, 0);
-
         mesh.RecalculateBounds();
-        //mesh.RecalculateTangents();
-        //mesh.UploadMeshData(true);       
-
         mf.mesh = mesh;
-
         mc.sharedMesh = mesh;
     }
 
-    void adduvbyidx(ref List<Vector2>  uvs, int idx)
+    void AddUvByIdx(ref List<Vector2>  uvs, int idx)
     {
-        //float trim = float.Epsilon;
         float trim = 1.0f / 32;
-
         float interval = 1 / 4.0f;
-
         Vector2 uvbase = new Vector2(0, 0);
 
         if (idx == 2) uvbase = new Vector2(interval, 0);
@@ -262,10 +233,10 @@ public class SphereBuilder : MonoBehaviour
     {
         int center = width / 2;
         int radius = width / 2 - 10;
-        //int radius = 4;
-
         for (int x = 0; x < width; x++)
+        {
             for (int y = 0; y < width; y++)
+            {
                 for (int z = 0; z < width; z++)
                 {
                     voxels[x, y, z] = new Voxel();
@@ -275,22 +246,10 @@ public class SphereBuilder : MonoBehaviour
                     {
                         voxels[x, y, z].attr = 1;// + z % 4;
                     }
-
-                    //if (lcheck(x, center) <= radius && lcheck(y , center) <= radius && lcheck(z , center) <= radius)
-                    //if (x >= center - radius && x <= center + radius && y >= center - radius && y <= center + radius && z >= center - radius && z <= center + radius)
-                    {
-                        //voxels[x, y, z].attr = 1;
-                    }
                 }
+            }
+        }
     }
-
-    bool picked = false;
-    bool emptySpace = false;
-
-    Vector3 dragStartPos = Vector3.zero;
-    Quaternion cameraOriginRotation = Quaternion.identity;
-    Vector3 axisCamRight = Vector3.right;
-    Vector3 axisCamUp = Vector3.forward;
 
     // Update is called once per frame
     void Update()
@@ -314,11 +273,8 @@ public class SphereBuilder : MonoBehaviour
             }
             else emptySpace = true;
 
-            dragStartPos = Input.mousePosition;
-            cameraOriginRotation = Camera.main.transform.rotation;
+            cameraContoller.MouseDown();
 
-            axisCamUp = Camera.main.transform.up;
-            axisCamRight = Camera.main.transform.right;
         }
 
         if (picked)
@@ -336,58 +292,8 @@ public class SphereBuilder : MonoBehaviour
         }
         else if(Input.GetMouseButton(0))
         {
-            var dragDelta = dragStartPos - Input.mousePosition;
-
-            var euler = cameraOriginRotation.eulerAngles;
-
-            //var q1 = Quaternion.AngleAxis(-dragDelta.y / Screen.width * 180, axisCamRight);
-            //var q2 = Quaternion.AngleAxis(dragDelta.x / Screen.width * 180, axisCamUp);
-
-            euler.x = euler.x + dragDelta.y / Screen.width * 180;
-            euler.y = euler.y - dragDelta.x / Screen.width * 180;
-
-            //Camera.main.transform.rotation = q1 * q2 * cameraOriginRotation;
-
-            Camera.main.transform.rotation = Quaternion.Euler(euler);
-
-            float axisX = 0;
-            float axisY = 0;
-            float axisZ = 0;
-
-            if (Input.GetKey(KeyCode.A)) axisX = -1;
-            if (Input.GetKey(KeyCode.D)) axisX = 1;
-            if (Input.GetKey(KeyCode.Q)) axisY = -1;
-            if (Input.GetKey(KeyCode.E)) axisY = 1;
-            if (Input.GetKey(KeyCode.S)) axisZ = -1;
-            if (Input.GetKey(KeyCode.W)) axisZ = 1;
-
-            
-
-            if (
-                Input.GetKeyDown(KeyCode.A) ||
-                Input.GetKeyDown(KeyCode.D) ||
-                Input.GetKeyDown(KeyCode.Q) ||
-                Input.GetKeyDown(KeyCode.E) ||
-                Input.GetKeyDown(KeyCode.S) ||
-                Input.GetKeyDown(KeyCode.W)
-            )
-            {
-                cameraSpeed = 1.0f;
-            }                
-
-            float delta = Time.deltaTime * cameraSpeed;
-
-            if (axisX != 0 || axisY != 0 || axisZ != 0)
-            {
-                cameraSpeed += Time.deltaTime;
-            }
-
-            Camera.main.transform.Translate(Vector3.right * axisX * delta, Space.Self);
-            Camera.main.transform.Translate(Vector3.up * axisY * delta, Space.Self);
-            Camera.main.transform.Translate(Vector3.forward * axisZ * delta, Space.Self);
-        }
-
-        
+            cameraContoller.Drag();
+        }        
 
         if (Input.GetMouseButtonUp(0))
         {
@@ -396,10 +302,6 @@ public class SphereBuilder : MonoBehaviour
         }
 
     }
-
-
-    float cameraSpeed = 1.0f;
-    public Vector3 pickpos = Vector3.zero;
 
     private bool ModifyByOnePoint(Ray ray)
     {
@@ -501,6 +403,29 @@ public class SphereBuilder : MonoBehaviour
         return hit;
     }
 
+
+    // public method
+
+    public void SetColor(int c)
+    {
+        if (c >= 1 && c <= 6)
+        {
+            paintcolor = c;
+        }
+    }
+
+    public void SetMode(int newMode)
+    {
+        mode = (Mode)newMode;
+    }
+
+    public void SetLookAt(bool newVal)
+    {
+        lookat = newVal;
+    }
+
+
+
     public void Save()
     {
         BinaryWriter bw = new BinaryWriter(new FileStream("buffer.raw", FileMode.Create));
@@ -589,7 +514,5 @@ public class SphereBuilder : MonoBehaviour
                 }
 
         BuildQuad();
-    }
-
-    public TextMeshProUGUI txtBrush;
+    }    
 }
