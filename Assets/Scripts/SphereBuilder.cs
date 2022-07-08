@@ -37,6 +37,7 @@ public class SphereBuilder : MonoBehaviour
 
     public Vector3 pickpos = Vector3.zero;
 
+    public Vector2 prevMousePos = Vector2.zero;
 
     // data
     static int width = 64;
@@ -249,7 +250,7 @@ public class SphereBuilder : MonoBehaviour
                 }
             }
         }
-    }
+    }    
 
     // Update is called once per frame
     void Update()
@@ -279,6 +280,19 @@ public class SphereBuilder : MonoBehaviour
 
         if (picked)
         {
+            // dab-spacing 
+            Ray ray0 = Camera.main.ScreenPointToRay(prevMousePos);
+
+            if (Physics.Raycast(ray0, out var hitinfo0))
+            {
+                Vector3 worldPos0 = hitinfo0.point;
+                if (Physics.Raycast(ray, out var hitinfo1))
+                {
+                    Vector3 worldPos1 = hitinfo1.point;
+                }
+
+            }
+
             if (ModifyByOnePoint(ray))
             {
                 BuildQuad();
@@ -316,6 +330,8 @@ public class SphereBuilder : MonoBehaviour
         {
             pickpos = Vector3.zero;
         }
+
+        prevMousePos = Input.mousePosition;
 
         return hit;
     }
