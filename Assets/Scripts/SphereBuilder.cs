@@ -24,6 +24,7 @@ public class SphereBuilder : MonoBehaviour
     public bool lookat = false;
 
     public Vector3 pickpos = Vector3.zero;
+    public Vector3 pickPosIndexAligned = Vector3.zero;
 
     public Vector2 prevMousePos = Vector2.zero;
 
@@ -36,6 +37,8 @@ public class SphereBuilder : MonoBehaviour
 
     void Awake()
     {
+        VoxelModifier.targetTransform = transform;
+
         cameraContoller = Camera.main.GetComponent<CameraController>();
         mf = gameObject.AddComponent<MeshFilter>();
         mc = gameObject.AddComponent<MeshCollider>();
@@ -46,7 +49,11 @@ public class SphereBuilder : MonoBehaviour
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(pickpos, 1);
+        Gizmos.DrawWireSphere(pickpos, 0.25f);
+        Gizmos.DrawWireCube(pickPosIndexAligned + (Vector3.one * 0.5f), Vector3.one * 0.5f);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(pickpos + VoxelModifier.growthDirectionAxisAligned, Vector3.one);
     }
 
     // implementation
@@ -61,6 +68,7 @@ public class SphereBuilder : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // ignore by UI
         if (canvasRaycast.Hit()) return;
 
         // get screen-space ray
@@ -87,7 +95,7 @@ public class SphereBuilder : MonoBehaviour
         }
         else if (Input.GetMouseButton(0))
         {
-            cameraContoller.Drag();
+            if(emptySpace) cameraContoller.Drag();
         }
 
         // up
@@ -142,15 +150,19 @@ public class SphereBuilder : MonoBehaviour
         int center = width / 2;
         bool hit = false;
 
-        if (Physics.Raycast(ray, out var hitinfo)) //, 1000, LayerMask.NameToLayer("Voxel"), QueryTriggerInteraction.UseGlobal))
+        if (Physics.Raycast(ray, out var hitinfo))
         {
             hit = true;
             pickpos = hitinfo.point;
-            var localpos = transform.InverseTransformPoint(pickpos);
-            var arrIdxpos = localpos + new Vector3(center, center, center);
+            VoxelModifier.growthDirectionAxisAligned = transform.InverseTransformDirection(hitinfo.normal) * 0.5f;
+            var localpos = transform.InverseTransformPoint(pickpos) - VoxelModifier.growthDirectionAxisAligned;
+            var arrIdxpos = localpos + new Vector3(center, center, center) - (Vector3.one * 0.5f);
             int x = Mathf.RoundToInt(arrIdxpos.x);
             int y = Mathf.RoundToInt(arrIdxpos.y);
             int z = Mathf.RoundToInt(arrIdxpos.z);
+
+            pickPosIndexAligned = transform.TransformPoint(new Vector3(x - center, y - center, z - center));
+
             hit = VoxelModifier.FillDab(hit, x, y, z, radius, width, ref voxels, ref voxelsForTrim);
         }
         else
@@ -250,13 +262,16 @@ public class SphereBuilder : MonoBehaviour
                     voxelsForTrim[x, y, z].attr = voxels[x, y, z].attr;
                 }
 
+        int r = radius;
+        if (r == 0) r = 1;
+
         for (int x = 0; x < width; x++)
             for (int y = 0; y < width; y++)
                 for (int z = 0; z < width; z++)
                 {
                     if (voxels[x, y, z].attr != 0)
                     {
-                        VoxelModifier.Extrude(x, y, z, radius, width, ref voxels, ref voxelsForTrim);
+                        VoxelModifier.Extrude(x, y, z, r, width, ref voxels, ref voxelsForTrim);
                     }
                 }
     }
