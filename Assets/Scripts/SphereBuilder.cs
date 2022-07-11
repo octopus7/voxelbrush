@@ -43,7 +43,23 @@ public class SphereBuilder : MonoBehaviour
         mf = gameObject.AddComponent<MeshFilter>();
         mc = gameObject.AddComponent<MeshCollider>();
         VoxelModifier.BuildSphereBuffer(ref voxels, width);
+        CreateTrimBuffer();
         BuildQuad();
+    }
+
+    private void CreateTrimBuffer()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < width; y++)
+            {
+                for (int z = 0; z < width; z++)
+                {
+                    voxelsForTrim[x, y, z] = new Voxel();
+                    voxelsForTrim[x, y, z].attr = 0;
+                }
+            }
+        }
     }
 
     private void OnDrawGizmos()
@@ -95,7 +111,7 @@ public class SphereBuilder : MonoBehaviour
         }
         else if (Input.GetMouseButton(0))
         {
-            if(emptySpace) cameraContoller.Drag();
+            if (emptySpace) cameraContoller.Drag();
         }
 
         // up
@@ -105,7 +121,29 @@ public class SphereBuilder : MonoBehaviour
             emptySpace = false;
         }
 
-        // expand test 
+        RotateMesh();
+        //TestExpand();
+
+        if (Input.GetKey(KeyCode.P))
+        {
+            VoxelModifier.BuildPlaneBuffer(ref voxels, width);
+            BuildQuad();
+        }
+    }
+
+    private void RotateMesh()
+    {
+        float delta = 50 * Time.deltaTime;
+        var camRight = Camera.main.transform.right;
+
+        if (Input.GetKey(KeyCode.DownArrow)) transform.Rotate(camRight, -1.0f * delta);
+        if (Input.GetKey(KeyCode.UpArrow)) transform.Rotate(camRight, 1.0f * delta);
+        if (Input.GetKey(KeyCode.LeftArrow)) transform.Rotate(0, -1.0f * delta, 0, Space.World);
+        if (Input.GetKey(KeyCode.RightArrow)) transform.Rotate(0, 1.0f * delta, 0, Space.World);
+    }
+
+    private void TestExpand()
+    {
         if (Input.GetKey(KeyCode.F))
         {
             CopyBuffer();
