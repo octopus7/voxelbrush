@@ -10,7 +10,10 @@ public class CameraController : MonoBehaviour
 
     void Update()
     {
-        
+        if (Input.mouseScrollDelta.y != 0)
+        {
+            Camera.main.transform.Translate(Vector3.forward * Input.mouseScrollDelta.y, Space.Self);
+        }
     }
 
     public void MouseDown()

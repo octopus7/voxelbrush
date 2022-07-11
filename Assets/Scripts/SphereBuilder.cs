@@ -11,28 +11,16 @@ public class SphereBuilder : MonoBehaviour
     // components
     public Slider radiusSlider;
     public TextMeshProUGUI txtBrush;
+    public CanvasRaycast canvasRaycast;
 
-    CameraController cameraContoller;    
+    CameraController cameraContoller;
     MeshFilter mf = null;
     MeshCollider mc = null;
 
-    // enums, struct
-    public enum Mode
-    {
-        Paint, Add, Sub
-    }
-
-    public struct Voxel
-    {
-        public int attr;
-    }
-
     // tool state
-    int paintcolor = 2;
     int radius = 1;
     bool picked = false;
     bool emptySpace = false;
-    public Mode mode = Mode.Paint;
     public bool lookat = false;
 
     public Vector3 pickpos = Vector3.zero;
@@ -50,8 +38,8 @@ public class SphereBuilder : MonoBehaviour
     {
         cameraContoller = Camera.main.GetComponent<CameraController>();
         mf = gameObject.AddComponent<MeshFilter>();
-        BuildSphereBuffer();
         mc = gameObject.AddComponent<MeshCollider>();
+        VoxelModifier.BuildSphereBuffer(ref voxels, width);
         BuildQuad();
     }
 
@@ -65,205 +53,20 @@ public class SphereBuilder : MonoBehaviour
 
     private void BuildQuad()
     {
-        int center = width / 2;
-
-        var mesh = new Mesh();
-
-        List<Vector3> vertices = new List<Vector3>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
-
-        List<int> indicies = new List<int>();
-        int idx = 0;
-
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < width; y++)
-                for (int z = 0; z < width; z++)
-                {
-                    // 6-faces
-                    int attr = voxels[x, y, z].attr;
-                    if (attr > 0)
-                    {
-                        Vector3 vCenter = new Vector3(x - center, y - center, z - center);
-                        // top
-                        if (y == width - 1 || voxels[x, y + 1, z].attr == 0)
-                        {                            
-                            vertices.Add(new Vector3(0, 1, 0) + vCenter);
-                            vertices.Add(new Vector3(0, 1, 1) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 1) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 0) + vCenter);
-                            normals.Add(Vector3.up);
-                            normals.Add(Vector3.up);
-                            normals.Add(Vector3.up);
-                            normals.Add(Vector3.up);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-
-                        }
-                        // bottom
-                        if (y == 0 || voxels[x, y - 1, z].attr == 0)
-                        {
-                            vertices.Add(new Vector3(0, 0, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 0, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 0, 1) + vCenter);
-                            vertices.Add(new Vector3(0, 0, 1) + vCenter);
-                            normals.Add(-Vector3.up);
-                            normals.Add(-Vector3.up);
-                            normals.Add(-Vector3.up);
-                            normals.Add(-Vector3.up);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-                        }
-                        // left
-                        if (x == 0 || voxels[x - 1, y, z].attr == 0)
-                        {
-                            vertices.Add(new Vector3(0, 0, 0) + vCenter);
-                            vertices.Add(new Vector3(0, 0, 1) + vCenter);
-                            vertices.Add(new Vector3(0, 1, 1) + vCenter);
-                            vertices.Add(new Vector3(0, 1, 0) + vCenter);
-                            normals.Add(-Vector3.right);
-                            normals.Add(-Vector3.right);
-                            normals.Add(-Vector3.right);
-                            normals.Add(-Vector3.right);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-                        }
-                        // right
-                        if (x == width - 1 || voxels[x + 1, y, z].attr == 0)
-                        {
-                            vertices.Add(new Vector3(1, 0, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 1) + vCenter);
-                            vertices.Add(new Vector3(1, 0, 1) + vCenter);
-                            normals.Add(Vector3.right);
-                            normals.Add(Vector3.right);
-                            normals.Add(Vector3.right);
-                            normals.Add(Vector3.right);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-                        }
-                        // front
-                        if (z == 0 || voxels[x, y, z - 1].attr == 0)
-                        {
-                            vertices.Add(new Vector3(0, 0, 0) + vCenter);
-                            vertices.Add(new Vector3(0, 1, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 0) + vCenter);
-                            vertices.Add(new Vector3(1, 0, 0) + vCenter);
-                            normals.Add(-Vector3.forward);
-                            normals.Add(-Vector3.forward);
-                            normals.Add(-Vector3.forward);
-                            normals.Add(-Vector3.forward);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-                        }
-                        // back
-                        if (z == width - 1 || voxels[x, y, z + 1].attr == 0)
-                        {
-                            vertices.Add(new Vector3(0, 0, 1) + vCenter);
-                            vertices.Add(new Vector3(1, 0, 1) + vCenter);
-                            vertices.Add(new Vector3(1, 1, 1) + vCenter);
-                            vertices.Add(new Vector3(0, 1, 1) + vCenter);
-                            normals.Add(Vector3.forward);
-                            normals.Add(Vector3.forward);
-                            normals.Add(Vector3.forward);
-                            normals.Add(Vector3.forward);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            indicies.Add(idx++);
-                            AddUvByIdx(ref uvs, attr);
-
-                        }
-                    }
-
-                }
-
-        mesh.name = "sphere";
-        mesh.vertices = vertices.ToArray();
-        mesh.normals = normals.ToArray();
-        mesh.SetUVs(0, uvs);
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        mesh.SetIndices(indicies, MeshTopology.Quads, 0);
-        mesh.RecalculateBounds();
+        var mesh = QuadGenerator.VoxelToMesh(voxels, width);
         mf.mesh = mesh;
         mc.sharedMesh = mesh;
     }
 
-    void AddUvByIdx(ref List<Vector2>  uvs, int idx)
-    {
-        float trim = 1.0f / 32;
-        float interval = 1 / 4.0f;
-        Vector2 uvbase = new Vector2(0, 0);
-
-        if (idx == 2) uvbase = new Vector2(interval, 0);
-        if (idx == 3) uvbase = new Vector2(0, interval);
-        if (idx == 4) uvbase = new Vector2(interval, interval);
-        if (idx == 5) uvbase = new Vector2(0, interval * 2);
-        if (idx == 6) uvbase = new Vector2(interval, interval * 2);
-
-        uvs.Add(new Vector2(0 + trim, 0 + trim) + uvbase);
-        uvs.Add(new Vector2(0 + trim, interval - trim) + uvbase);
-        uvs.Add(new Vector2(interval - trim, interval - trim) + uvbase);
-        uvs.Add(new Vector2(interval - trim, 0 + trim) + uvbase);
-    }
-
-    
-
-    int lcheck(int a, int b)
-    {
-        if (a > b) return a - b;
-        return b - a;
-    }
-
-    private void BuildSphereBuffer()
-    {
-        int center = width / 2;
-        int radius = width / 2 - 10;
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < width; y++)
-            {
-                for (int z = 0; z < width; z++)
-                {
-                    voxels[x, y, z] = new Voxel();
-                    voxels[x, y, z].attr = 0;
-                    float mag = new Vector3(x - center, y - center, z - center).magnitude;
-                    if (Mathf.RoundToInt(mag) <= radius)
-                    {
-                        voxels[x, y, z].attr = 1;// + z % 4;
-                    }
-                }
-            }
-        }
-    }    
-
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKey(KeyCode.F)) Expand();
+        if (canvasRaycast.Hit()) return;
 
-        if (Input.mouseScrollDelta.y != 0)
-        {
-            Camera.main.transform.Translate(Vector3.forward * Input.mouseScrollDelta.y, Space.Self);
-        }
-
+        // get screen-space ray
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
+        // down
         if (Input.GetMouseButtonDown(0))
         {
             CopyBuffer();
@@ -275,38 +78,62 @@ public class SphereBuilder : MonoBehaviour
             else emptySpace = true;
 
             cameraContoller.MouseDown();
-
         }
 
+        // drag
         if (picked)
         {
-            // dab-spacing 
-            Ray ray0 = Camera.main.ScreenPointToRay(prevMousePos);
-
-            if (Physics.Raycast(ray0, out var hitinfo0))
-            {
-                Vector3 worldPos0 = hitinfo0.point;
-                if (Physics.Raycast(ray, out var hitinfo1))
-                {
-                    Vector3 worldPos1 = hitinfo1.point;
-                }
-
-            }
-
-            if (ModifyByOnePoint(ray))
-            {
-                BuildQuad();
-            }
+            MouseDrag(ray);
         }
-        else if(Input.GetMouseButton(0))
+        else if (Input.GetMouseButton(0))
         {
             cameraContoller.Drag();
-        }        
+        }
 
+        // up
         if (Input.GetMouseButtonUp(0))
         {
             picked = false;
             emptySpace = false;
+        }
+
+        // expand test 
+        if (Input.GetKey(KeyCode.F))
+        {
+            CopyBuffer();
+            VoxelModifier.Expand(ref voxels, ref voxelsForTrim, width);
+            BuildQuad();
+        }
+    }
+
+    private void MouseDrag(Ray ray)
+    {
+        Ray ray0 = Camera.main.ScreenPointToRay(prevMousePos);
+
+        if (Physics.Raycast(ray0, out var hitinfo0))
+        {
+            Vector3 worldPos0 = hitinfo0.point;
+            if (Physics.Raycast(ray, out var hitinfo1))
+            {
+                // dab-spacing 100% interpolate
+                Vector3 worldPos1 = hitinfo1.point;
+                int repeatCount = (int)(Vector3.Distance(worldPos0, worldPos1) / (radius + 1));
+
+                if (repeatCount > 1)
+                {
+                    for (int r = 1; r < repeatCount; r++)
+                    {
+                        Vector3 worldPosRepeat = Vector3.Lerp(worldPos0, worldPos1, (float)r / repeatCount);
+                        Ray rayRepeat = new Ray(ray0.origin, (worldPosRepeat - ray0.origin).normalized);
+                        ModifyByOnePoint(rayRepeat);
+                    }
+                }
+            }
+        }
+
+        if (ModifyByOnePoint(ray))
+        {
+            BuildQuad();
         }
     }
 
@@ -324,7 +151,7 @@ public class SphereBuilder : MonoBehaviour
             int x = Mathf.RoundToInt(arrIdxpos.x);
             int y = Mathf.RoundToInt(arrIdxpos.y);
             int z = Mathf.RoundToInt(arrIdxpos.z);
-            hit = FillDab(hit, x, y, z);
+            hit = VoxelModifier.FillDab(hit, x, y, z, radius, width, ref voxels, ref voxelsForTrim);
         }
         else
         {
@@ -332,47 +159,6 @@ public class SphereBuilder : MonoBehaviour
         }
 
         prevMousePos = Input.mousePosition;
-
-        return hit;
-    }
-
-    private bool FillDab(bool hit, int x0, int y0, int z0)
-    {
-        int r = radius;
-
-        for (int x = x0 - r; x <= x0 + r; x++)
-            for (int y = y0 - r; y <= y0 + r; y++)
-                for (int z = z0 - r; z <= z0 + r; z++)
-                {
-                    int dx = x - x0;
-                    int dy = y - y0;
-                    int dz = z - z0;
-
-                    int sq = dx * dx + dy * dy + dz * dz;
-                    if (sq > r * r) continue;
-
-                    if (0 <= x && x < width && 0 <= y && y < width && 0 <= z && z < width)
-                    {
-                        if (voxels[x, y, z].attr > 0)
-                        {
-                            if(mode == Mode.Paint)
-                                voxels[x, y, z].attr = paintcolor;
-                            else if(mode == Mode.Sub)
-                                voxels[x, y, z].attr = 0;
-                            hit = true;
-                        }
-                        else
-                        {
-                            if (mode == Mode.Add)
-                            {
-                                if (voxelsForTrim[x, y, z].attr > 0)
-                                {
-                                    voxels[x, y, z].attr = paintcolor;
-                                }                                    
-                            }                                
-                        }
-                    }
-                }
 
         return hit;
     }
@@ -396,7 +182,7 @@ public class SphereBuilder : MonoBehaviour
                     {
                         if (voxels[x, y, z].attr > 0)
                         {
-                            voxels[x, y, z].attr = paintcolor;
+                            voxels[x, y, z].attr = VoxelModifier.paintColor;
                             hit = true;
                         }
                     }
@@ -409,13 +195,13 @@ public class SphereBuilder : MonoBehaviour
     {
         if (c >= 1 && c <= 6)
         {
-            paintcolor = c;
+            VoxelModifier.paintColor = c;
         }
     }
 
     public void SetMode(int newMode)
     {
-        mode = (Mode)newMode;
+        VoxelModifier.mode = (VoxelModifier.Mode)newMode;
     }
 
     public void SetLookAt(bool newVal)
@@ -442,7 +228,7 @@ public class SphereBuilder : MonoBehaviour
             for (int y = 0; y < width; y++)
                 for (int z = 0; z < width; z++)
                 {
-                    voxels[x, y, z].attr = br.ReadInt32();                    
+                    voxels[x, y, z].attr = br.ReadInt32();
                 }
 
         BuildQuad();
@@ -450,7 +236,7 @@ public class SphereBuilder : MonoBehaviour
 
     public void DabRadiusChanged()
     {
-        radius =  (int)radiusSlider.value;
+        radius = (int)radiusSlider.value;
         txtBrush.text = $"R = {radius}";
 
     }
@@ -468,49 +254,12 @@ public class SphereBuilder : MonoBehaviour
             for (int y = 0; y < width; y++)
                 for (int z = 0; z < width; z++)
                 {
-                    if(voxels[x, y, z].attr != 0)
+                    if (voxels[x, y, z].attr != 0)
                     {
-                        Extrusion(x, y, z);
-                    }                    
-                }
-    }
-
-    private void Extrusion(int x0, int y0, int z0)
-    {
-        int r = radius;
-
-        for (int x = x0 - r; x <= x0 + r; x++)
-            for (int y = y0 - r; y <= y0 + r; y++)
-                for (int z = z0 - r; z <= z0 + r; z++)
-                {
-                    if (voxelsForTrim[x, y, z].attr > 0) continue;
-
-                    int dx = x - x0;
-                    int dy = y - y0;
-                    int dz = z - z0;
-
-                    int sq = dx * dx + dy * dy + dz * dz;
-                    if (sq > r * r) continue;
-
-                    if (0 <= x && x < width && 0 <= y && y < width && 0 <= z && z < width)
-                    {
-                        voxelsForTrim[x, y, z].attr = paintcolor;
+                        VoxelModifier.Extrude(x, y, z, radius, width, ref voxels, ref voxelsForTrim);
                     }
                 }
     }
 
-    void Expand()
-    {
-
-        CopyBuffer();
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < width; y++)
-                for (int z = 0; z < width; z++)
-                {
-                    voxels[x, y, z].attr = voxelsForTrim[x, y, z].attr;
-                }
-
-        BuildQuad();
-    }   
 
 }
